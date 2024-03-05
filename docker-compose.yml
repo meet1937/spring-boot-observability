@@ -1,0 +1,85 @@
+version: "4"
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysqldb
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      #      MYSQL_DATABASE: mydb
+      MYSQL_USER: root
+      MYSQL_PASSWORD: mysql
+    ports:
+      - "3316:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  loan-service:
+    build: ./loan-service/
+    container_name: loan-service
+    environment:
+      OTEL_SERVICE_NAME: "loan-service"
+      OTEL_TRACES_EXPORTER: "zipkin"
+      OTEL_EXPORTER_ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      OTEL_METRICS_EXPORTER: "prometheus"
+      OTEL_EXPORTER_PROMETHEUS_HOST: "0.0.0.0"
+      OTEL_EXPORTER_PROMETHEUS_PORT: "9464"
+      OTEL_LOGS_EXPORTER: "none"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - zipkin-all-in-one
+
+  fraud-service:
+    build: ./fraud-detection-service/
+    container_name: fraud-detection-service
+    environment:
+      OTEL_SERVICE_NAME: "fraud-detection-service"
+      OTEL_TRACES_EXPORTER: "zipkin"
+      OTEL_EXPORTER_ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      OTEL_METRICS_EXPORTER: "prometheus"
+      OTEL_EXPORTER_PROMETHEUS_HOST: "0.0.0.0"
+      OTEL_EXPORTER_PROMETHEUS_PORT: "9465"
+      OTEL_LOGS_EXPORTER: "none"
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mysql
+      - zipkin-all-in-one
+
+  zipkin-all-in-one:
+    container_name: zipkin
+    image: openzipkin/zipkin:latest
+    restart: always
+    ports:
+      - "9411:9411"
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    restart: always
+    ports:
+      - '9090:9090'
+    depends_on:
+      - loan-service
+      - fraud-service
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    volumes:
+      - ./docker/grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  mysql-data:
