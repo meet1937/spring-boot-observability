@@ -6,9 +6,11 @@ services:
     container_name: mysqldb
     environment:
       MYSQL_ROOT_PASSWORD: mysql
-      #      MYSQL_DATABASE: mydb
-      MYSQL_USER: root
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: meetdhami
       MYSQL_PASSWORD: mysql
+    networks:
+      - employee-mysql
     ports:
       - "3316:3306"
     volumes:
@@ -28,6 +30,8 @@ services:
       OTEL_LOGS_EXPORTER: "none"
     ports:
       - "8080:8080"
+    networks:
+      - employee-mysql
     depends_on:
       - mysql
       - zipkin-all-in-one
@@ -45,6 +49,8 @@ services:
       OTEL_LOGS_EXPORTER: "none"
     ports:
       - "8081:8081"
+    networks:
+      - employee-mysql
     depends_on:
       - mysql
       - zipkin-all-in-one
@@ -53,6 +59,8 @@ services:
     container_name: zipkin
     image: openzipkin/zipkin:latest
     restart: always
+    networks:
+      - employee-mysql
     ports:
       - "9411:9411"
 
@@ -66,6 +74,8 @@ services:
     restart: always
     ports:
       - '9090:9090'
+    networks:
+      - employee-mysql
     depends_on:
       - loan-service
       - fraud-service
@@ -83,3 +93,6 @@ services:
 
 volumes:
   mysql-data:
+
+networks:
+  employee-mysql:
