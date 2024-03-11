@@ -1,0 +1,21 @@
+spring:
+
+  application:
+    name: loan-service
+
+  datasource:
+    url: jdbc:mysql://mysql:3306/mydb?createDatabaseIfNotExist=true
+    username: root
+    password: mysql
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8080
